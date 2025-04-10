@@ -12,7 +12,7 @@ creds = ServiceAccountCredentials.from_json_keyfile_name("credenciais.json", sco
 client = gspread.authorize(creds)
 
 # Abrir a planilha pelo ID
-spreadsheet_id = "1LCo051AtXvsEV17rL_7Vgw7HJXUu7kaa7_7a1eFMl-I"
+spreadsheet_id = "18Cg3p1NfAIS7GSxdoVYZhrWAMIvVggIrtaEp_R9XU4E"
 sheet = client.open_by_key(spreadsheet_id).sheet1
 
 # 3. Carregar dados em um DataFrame
@@ -20,50 +20,65 @@ data = sheet.get_all_records()
 df = pd.DataFrame(data)
 
 # 4. Limpar colunas (remover espaços)
-df.columns = df.columns.str.strip()
+df.columns = [
+    "entity", "code", "year",
+    "schizophrenia", "depressive", "anxiety",
+    "bipolar", "eating"
+]
 
-print("Colunas disponíveis:", df.columns.tolist())
-print("Quantidade de linhas:", len(df))
-print("Amostra dos dados:")
-print(df.head())
+df["year"] = df["year"].astype(int)
 
-# Verificar visualmente as colunas e as 5 primeiras linhas
-print("Colunas no DataFrame:")
-print(df.columns.tolist())
-print("\nAmostra dos dados:")
-print(df.head())
+# Define anos
+ano_inicial = df["year"].min()
+ano_final = df["year"].max()
+
+# Seleciona as 6 cidades com maior média de distúrbios no ano final
+top_cidades = (
+    df[df["year"] == ano_final]
+    .groupby("entity")[["schizophrenia", "depressive", "anxiety", "bipolar", "eating"]]
+    .mean()
+    .mean(axis=1)
+    .sort_values(ascending=False)
+    .head(6)
+    .index.tolist()
+)
+
+df_filtrado = df[df["entity"].isin(top_cidades)]
+
+# === GRÁFICO DE LINHAS: Evolução dos distúrbios nas 6 principais cidades ===
+disturbios = ["schizophrenia", "depressive", "anxiety", "bipolar", "eating"]
+for dist in disturbios:
+    plt.figure(figsize=(10, 6))
+    sns.lineplot(data=df_filtrado, x="year", y=dist, hue="entity", marker="o")
+    plt.title(f"Evolução da taxa de {dist.capitalize()} – Top Cidades")
+    plt.xlabel("Ano")
+    plt.ylabel("Taxa (%)")
+    plt.legend(title="Cidade")
+    plt.grid(True, linestyle='--', alpha=0.4)
+    plt.tight_layout()
+    plt.show()
+
+# === GRÁFICO DE BARRAS: Comparação de cada distúrbio no primeiro vs. último ano ===
+df_inicio = df[(df["year"] == ano_inicial) & (df["entity"].isin(top_cidades))]
+df_fim = df[(df["year"] == ano_final) & (df["entity"].isin(top_cidades))]
+
+for dist in disturbios:
+    df_bar = pd.DataFrame({
+        "Cidade": top_cidades,
+        f"{ano_inicial}": df_inicio.set_index("entity")[dist],
+        f"{ano_final}": df_fim.set_index("entity")[dist]
+    }).reset_index(drop=True)
+
+    df_bar_melted = df_bar.melt(id_vars="Cidade", var_name="Ano", value_name="Taxa")
+
+    plt.figure(figsize=(10, 6))
+    sns.barplot(data=df_bar_melted, x="Cidade", y="Taxa", hue="Ano")
+    plt.title(f"Comparação da taxa de {dist.capitalize()} ({ano_inicial} vs {ano_final})")
+    plt.ylabel("Taxa (%)")
+    plt.xlabel("Cidade")
+    plt.legend(title="Ano")
+    plt.tight_layout()
+    plt.show()
 
 
-# Gráfico 1: Média de calorias por gênero
-plt.figure(figsize=(8, 6))
-sns.barplot(data=df, x="Gender", y="Calories_Intake", estimator="mean")
-plt.title("Média de Calorias Ingeridas por Gênero")
-plt.ylabel("Calorias (média)")
-plt.xlabel("Gênero")
-plt.show()
 
-# Gráfico 2: Altura vs Peso com distinção de gênero
-plt.figure(figsize=(8, 6))
-sns.scatterplot(data=df, x="Height_cm", y="Weight_kg", hue="Gender")
-plt.title("Altura vs Peso por Gênero")
-plt.xlabel("Altura (cm)")
-plt.ylabel("Peso (kg)")
-plt.show()
-
-# Gráfico 3: Boxplot de horas de sono por diabéticos
-plt.figure(figsize=(8, 6))
-sns.boxplot(data=df, x="Diabetic", y="Hours_of_Sleep")
-plt.title("Horas de Sono por Condição Diabética")
-plt.xlabel("É Diabético?")
-plt.ylabel("Horas de Sono")
-plt.show()
-
-# Gráfico 4: Distribuição de doença cardíaca
-plt.figure(figsize=(6, 5))
-sns.countplot(data=df, x="Heart_Disease")
-plt.title("Distribuição de Pessoas com Doença Cardíaca")
-plt.xlabel("Doença Cardíaca")
-plt.ylabel("Número de Pessoas")
-plt.show()
-
-print("Quantidade de linhas:", len(df))
