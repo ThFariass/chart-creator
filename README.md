@@ -11,12 +11,15 @@ Foco em 6 cidades por vez para uma visualização clara e objetiva.
 
 **Como executar o projeto**
 **1. Clone o repositório**
+
 bash
 Copiar
 Editar
 git clone https://github.com/seu-usuario/nome-do-repo.git
 cd nome-do-repo
+
 **2. Instale as dependências**
+
 Você pode usar pip ou um ambiente como Anaconda:
 
 bash
