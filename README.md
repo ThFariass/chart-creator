@@ -10,6 +10,7 @@ Comparações entre o primeiro e o último ano dos dados.
 Foco em 6 cidades por vez para uma visualização clara e objetiva.
 
 **Como executar o projeto**
+
 **1. Clone o repositório**
 
 bash
